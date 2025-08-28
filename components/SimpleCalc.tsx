@@ -434,7 +434,7 @@ export default function SimpleCalc({ champions }: Props) {
       mrRedPct,
       armorRedFlat,
       mrRedFlat,
-      distanceFactor,
+  distanceFactor,
     ]
   );
   const comboRes = useMemo(
@@ -459,7 +459,8 @@ export default function SimpleCalc({ champions }: Props) {
           mrReductionPercent: mrRedPct / 100,
           armorReductionFlat: armorRedFlat,
           mrReductionFlat: mrRedFlat,
-        }
+        },
+        skill.damage.distanceBase ? { distanceFactor } : undefined
       ),
     [
       atkStats,
@@ -474,6 +475,7 @@ export default function SimpleCalc({ champions }: Props) {
       skill,
       rank,
       skillIndex,
+  distanceFactor,
     ]
   );
 
@@ -492,7 +494,8 @@ export default function SimpleCalc({ champions }: Props) {
           step={0.01}
           value={distanceFactor}
           onChange={(e) => setDistanceFactor(Number(e.target.value))}
-          className="w-full"
+          onInput={(e) => setDistanceFactor(Number((e.target as HTMLInputElement).value))}
+          className="w-full h-3 cursor-pointer accent-slate-900"
         />
         <div className="text-[11px] text-slate-500">
           {distanceFactor.toFixed(2)}
@@ -545,16 +548,22 @@ export default function SimpleCalc({ champions }: Props) {
 
   const comboBuiltRes = useMemo(() => {
     if (!builtActions.length) return null;
-    return runCombo(builtActions, atkStats, {
-      armor: tgtBase.armor,
-      mr: tgtBase.mr,
-      hp: { ...targetHp },
-      shield,
-      armorReductionPercent: armorRedPct / 100,
-      mrReductionPercent: mrRedPct / 100,
-      armorReductionFlat: armorRedFlat,
-      mrReductionFlat: mrRedFlat,
-    });
+    return runCombo(
+      builtActions,
+      atkStats,
+      {
+        armor: tgtBase.armor,
+        mr: tgtBase.mr,
+        hp: { ...targetHp },
+        shield,
+        armorReductionPercent: armorRedPct / 100,
+        mrReductionPercent: mrRedPct / 100,
+        armorReductionFlat: armorRedFlat,
+        mrReductionFlat: mrRedFlat,
+      },
+      // 距離係数はビルド済みコンボでも適用（距離スケール持ちアクションが含まれる可能性）
+      { distanceFactor }
+    );
   }, [
     builtActions,
     atkStats,
@@ -566,6 +575,7 @@ export default function SimpleCalc({ champions }: Props) {
     mrRedPct,
     armorRedFlat,
     mrRedFlat,
+    distanceFactor,
   ]);
 
   const dpsInfo = useMemo(() => {

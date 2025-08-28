@@ -37,3 +37,36 @@ input[type="checkbox"],
 button {
   color: inherit;
 }
+/* Improve usability for range inputs */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  background: rgba(100,116,139,0.35);
+  border-radius: 9999px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6px; /* align thumb to track */
+  width: 18px;
+  height: 18px;
+  background: #0f172a;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  background: rgba(100,116,139,0.35);
+  border-radius: 9999px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #0f172a;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+}

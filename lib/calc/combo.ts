@@ -26,7 +26,8 @@ export type TargetState = {
 export function runCombo(
   actions: ComboAction[],
   attacker: AggregatedStats,
-  target: TargetState
+  target: TargetState,
+  opts?: { distanceFactor?: number }
 ) {
   const timeline: Array<{
     time: number;
@@ -41,7 +42,7 @@ export function runCombo(
     t += act.castTime;
     // dealt is derivable from timeline; omit local accumulator
     if (act.type === "skill") {
-      const res = calculateSkillHit(act.skill, act.rank, attacker, target);
+      const res = calculateSkillHit(act.skill, act.rank, attacker, target, opts);
       // Instant portion first with shield absorption
       let instant = res.final - (res.breakdown.dotFinal ?? 0);
       if (shield > 0) {
