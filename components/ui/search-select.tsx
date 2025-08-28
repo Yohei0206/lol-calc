@@ -29,6 +29,7 @@ export const SearchSelect: React.FC<Props> = ({
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [activeIdx, setActiveIdx] = React.useState(0);
@@ -47,6 +48,21 @@ export const SearchSelect: React.FC<Props> = ({
     if (!q) return options;
     return options.filter((o) => o.label.toLowerCase().includes(q));
   }, [options, query]);
+
+  // アクティブ項目を可視範囲に保つ
+  React.useEffect(() => {
+    if (!open) return;
+    const menu = menuRef.current;
+    if (!menu) return;
+    const li = menu.querySelector<HTMLLIElement>(`li[data-idx="${activeIdx}"]`);
+    if (!li) return;
+    const liTop = li.offsetTop;
+    const liBottom = liTop + li.offsetHeight;
+    const viewTop = menu.scrollTop;
+    const viewBottom = viewTop + menu.clientHeight;
+    if (liTop < viewTop) menu.scrollTop = liTop;
+    else if (liBottom > viewBottom) menu.scrollTop = liBottom - menu.clientHeight;
+  }, [activeIdx, open]);
 
   React.useEffect(() => {
     if (open) {
@@ -90,8 +106,10 @@ export const SearchSelect: React.FC<Props> = ({
 
   React.useEffect(() => {
     function onDocDown(e: MouseEvent) {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target as Node)) setOpen(false);
+  const target = e.target as Node | null;
+  const inInput = !!containerRef.current?.contains(target as Node);
+  const inMenu = !!menuRef.current?.contains(target as Node);
+  if (!inInput && !inMenu) setOpen(false);
     }
     document.addEventListener("mousedown", onDocDown);
     return () => document.removeEventListener("mousedown", onDocDown);
@@ -162,7 +180,8 @@ export const SearchSelect: React.FC<Props> = ({
         menuPos &&
         createPortal(
           <div
-            className="z-[1000] rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 overflow-auto"
+            ref={menuRef}
+            className="z-[1000] rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 overflow-auto overscroll-contain scroll-p-1"
             style={{
               position: "fixed",
               top: menuPos.top,
@@ -176,6 +195,7 @@ export const SearchSelect: React.FC<Props> = ({
                 {filtered.map((opt, idx) => (
                   <li
                     key={String(opt.value)}
+                    data-idx={idx}
                     className={cn(
                       "px-2 py-1.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800",
                       idx === activeIdx && "bg-slate-100 dark:bg-slate-800",
