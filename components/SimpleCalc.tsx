@@ -482,6 +482,7 @@ export default function SimpleCalc({ champions }: Props) {
   // 距離スケールUI（該当スキルのみ表示）
   const DistanceSlider = () => {
     if (!skill?.damage?.distanceBase) return null;
+    const sliderVal = Math.round(distanceFactor * 100);
     return (
       <div className="mt-2">
         <div className="text-xs text-slate-600 dark:text-slate-300 mb-1">
@@ -490,15 +491,27 @@ export default function SimpleCalc({ champions }: Props) {
         <input
           type="range"
           min={0}
-          max={1}
-          step={0.01}
-          value={distanceFactor}
-          onChange={(e) => setDistanceFactor(Number(e.target.value))}
-          onInput={(e) => setDistanceFactor(Number((e.target as HTMLInputElement).value))}
+          max={100}
+          step={1}
+          value={sliderVal}
+          onChange={(e) => setDistanceFactor(Number(e.currentTarget.value) / 100)}
+          onInput={(e) => setDistanceFactor(Number((e.target as HTMLInputElement).value) / 100)}
           className="w-full h-3 cursor-pointer accent-slate-900"
         />
-        <div className="text-[11px] text-slate-500">
-          {distanceFactor.toFixed(2)}
+        <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-1">
+          <span>{distanceFactor.toFixed(2)}</span>
+          <Input
+            className="w-16 h-6"
+            type="number"
+            min={0}
+            max={1}
+            step={0.01}
+            value={distanceFactor}
+            onChange={(e) => {
+              const v = Math.max(0, Math.min(1, Number((e.target as HTMLInputElement).value)));
+              if (!Number.isNaN(v)) setDistanceFactor(v);
+            }}
+          />
         </div>
       </div>
     );
