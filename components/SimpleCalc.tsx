@@ -16,6 +16,7 @@ import { buildAggregatedStats, aggregateStats } from "@/lib/calc/stats";
 import {
   calculateSkillHit,
   calculateAutoAttackAverage,
+  reduceMagical,
 } from "@/lib/calc/damage";
 import { runCombo } from "@/lib/calc/combo";
 import itemsData from "@/data/items.normalized.json";
@@ -469,7 +470,28 @@ export default function SimpleCalc({ champions }: Props) {
           armorReductionFlat: armorRedFlat,
           mrReductionFlat: mrRedFlat,
         },
-        skill.damage.distanceBase ? { distanceFactor } : undefined
+        (() => {
+          const baseOpts: { distanceFactor?: number; bonusOnce?: { name: string; amountFinal: number } } = {};
+          if (skill.damage.distanceBase) baseOpts.distanceFactor = distanceFactor;
+          // 電撃(8112)の追加ダメージを簡易で適用（procRunesActive時のみ）
+          const electrocute = selectedRunes.find((r) => r.id === 8112);
+          if (electrocute && procRunesActive) {
+            // 電撃ダメージ（簡易）: 70 + 0.1 増加AD + 0.05 AP（レベルスケールは省略）
+            const bonusAD = Math.max(0, atkStats.totalAD - attacker.baseStats.ad.base);
+            const raw = 70 + 0.1 * bonusAD + 0.05 * atkStats.totalAP;
+            // アダプティブ扱い→ここでは魔法耐性で軽減（簡易）。より厳密にはダメージタイプ選択が必要。
+            const reduced = reduceMagical(
+              raw * (1 + atkStats.runeDamageIncrease),
+              tgtBase.mr,
+              atkStats.magicPenFlat,
+              atkStats.magicPenPercent,
+              mrRedPct / 100,
+              mrRedFlat
+            );
+            baseOpts.bonusOnce = { name: "電撃", amountFinal: Math.max(0, reduced) };
+          }
+          return baseOpts;
+        })()
       ),
     [
       atkStats,
@@ -484,7 +506,10 @@ export default function SimpleCalc({ champions }: Props) {
       skill,
       rank,
       skillIndex,
-  distanceFactor,
+      distanceFactor,
+      selectedRunes,
+      procRunesActive,
+      attacker.baseStats.ad.base,
     ]
   );
 

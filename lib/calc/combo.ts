@@ -27,7 +27,7 @@ export function runCombo(
   actions: ComboAction[],
   attacker: AggregatedStats,
   target: TargetState,
-  opts?: { distanceFactor?: number }
+  opts?: { distanceFactor?: number; bonusOnce?: { name: string; amountFinal: number } }
 ) {
   const timeline: Array<{
     time: number;
@@ -38,6 +38,7 @@ export function runCombo(
   let t = 0;
   let currentHp = target.hp.current;
   let shield = target.shield ?? 0;
+  let bonusUsed = false;
   for (const act of actions) {
     t += act.castTime;
     // dealt is derivable from timeline; omit local accumulator
@@ -57,6 +58,26 @@ export function runCombo(
         damage: instant,
         hpAfter: currentHp,
       });
+
+      // Optional one-time bonus (e.g., Electrocute) applied after the instant hit
+      if (!bonusUsed && opts?.bonusOnce && opts.bonusOnce.amountFinal > 0) {
+        let bonus = opts.bonusOnce.amountFinal;
+        if (shield > 0) {
+          const absorb = Math.min(shield, bonus);
+          shield -= absorb;
+          bonus -= absorb;
+        }
+        if (bonus > 0) {
+          currentHp = Math.max(0, currentHp - bonus);
+          timeline.push({
+            time: t,
+            name: opts.bonusOnce.name,
+            damage: bonus,
+            hpAfter: currentHp,
+          });
+        }
+        bonusUsed = true;
+      }
 
       // Schedule DoT ticks if available
       if (res.ticks && res.ticks.length) {
