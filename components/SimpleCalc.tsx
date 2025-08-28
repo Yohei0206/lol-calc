@@ -182,39 +182,48 @@ export default function SimpleCalc({ champions }: Props) {
       }
     };
 
+    // 与ダメ増加（%増幅）対象を限定して扱う
+    // - 8369: ファーストストライク 7%（交戦開始時）
+    // - 8005: プレスアタック 8%（3ヒット後）
+    // - 8014: 最期の慈悲 8%（相手HP<=40%）
+    // - 8299: 背水の陣 5%〜11%（自分のHPに応じて）
+    // - 8017: 切り崩し 体力差に応じて最大15%（簡易）
+    // それ以外（電撃/彗星/握撃 など追加ダメージ系）は%増幅に含めない
     const condAmp = selectedRunes.reduce((sum, r) => {
       const id = r.id;
-      const base = r.effects?.damageIncrease ?? 0;
-      // HP条件系（常時系なのでprocトグルには依存しない）
-      if (id === 8299) {
-        // 背水の陣: HP<=60%で増加、30%で最大
-        if (attackerHpNow <= 30) return sum + 0.11;
-        if (attackerHpNow <= 60) return sum + 0.05;
-        return sum;
-      }
-      if (id === 8014) {
-        // 最期の慈悲: 低HPの敵（~40%）
-        if (targetHpNow <= 40) return sum + 0.08;
-        return sum;
-      }
-      if (id === 8017) {
-        // 切り崩し: 自分より最大体力が高い相手に比例（簡易）
-        if (attackerMaxHP > 0 && targetMaxHP > attackerMaxHP * 1.1) {
-          // 差分割合に応じて最大値(データ内のbase=0.08)まで線形スケール
-          const ratio = Math.min(
-            1,
-            (targetMaxHP / Math.max(1, attackerMaxHP) - 1.1) / 0.9
-          );
-          return sum + (r.effects?.damageIncrease ?? 0) * Math.max(0, ratio);
+      switch (id) {
+        case 8369: {
+          // First Strike
+          return sum + (isProcOK(id) ? 0.07 : 0);
         }
-        return sum;
+        case 8005: {
+          // Press the Attack
+          return sum + (isProcOK(id) ? 0.08 : 0);
+        }
+        case 8014: {
+          // Coup de Grace
+          return sum + (targetHpNow <= 40 ? 0.08 : 0);
+        }
+        case 8299: {
+          // Last Stand
+          if (attackerHpNow <= 30) return sum + 0.11;
+          if (attackerHpNow <= 60) return sum + 0.05;
+          return sum;
+        }
+        case 8017: {
+          // Cut Down（簡易スケール: 10%超過から最大+15%まで線形）
+          if (attackerMaxHP > 0 && targetMaxHP > attackerMaxHP * 1.1) {
+            const ratio = Math.min(
+              1,
+              (targetMaxHP / Math.max(1, attackerMaxHP) - 1.1) / 0.9
+            );
+            return sum + 0.15 * Math.max(0, ratio);
+          }
+          return sum;
+        }
+        default:
+          return sum; // その他は%増幅に含めない
       }
-      // Proc系（トグルと簡易条件）
-      if ([8005, 8112, 8229, 8369, 8010, 8008, 8351].includes(id)) {
-        return sum + (isProcOK(id) ? base : 0);
-      }
-      // それ以外は常時（baseをそのまま）
-      return sum + base;
     }, 0);
 
     const runeAmpFromRunes = condAmp;
@@ -1075,15 +1084,21 @@ export default function SimpleCalc({ champions }: Props) {
                         { label: "なし", value: 0 },
                         ...allRunes
                           .filter((r) => r.isKeystone)
-                          .map((r) => ({
-                            label:
-                              (r.effects?.damageIncrease ?? 0) > 0
-                                ? `${r.name} (+${Math.round(
-                                    (r.effects!.damageIncrease! || 0) * 100
-                                  )}%)`
-                                : r.name,
-                            value: r.id,
-                          })),
+                          .map((r) => {
+                            const id = r.id;
+                            const ampLabel =
+                              id === 8369
+                                ? "+7%"
+                                : id === 8005
+                                ? "+8%"
+                                : id === 8014
+                                ? "+8%"
+                                : ""; // その他は表示しない
+                            return {
+                              label: ampLabel ? `${r.name} (${ampLabel})` : r.name,
+                              value: r.id,
+                            };
+                          }),
                       ]}
                       value={keystoneId}
                       onChange={(v) => setKeystoneId(Number(v))}
@@ -1099,16 +1114,20 @@ export default function SimpleCalc({ champions }: Props) {
                           { label: "なし", value: 0 },
                           ...allRunes
                             .filter(
-                              (r) =>
-                                !r.isKeystone &&
-                                (r.effects?.damageIncrease ?? 0) > 0
+                              (r) => !r.isKeystone && [8299, 8014, 8017].includes(r.id)
                             )
-                            .map((r) => ({
-                              label: `${r.name} (+${Math.round(
-                                r.effects!.damageIncrease! * 100
-                              )}%)`,
-                              value: r.id,
-                            })),
+                            .map((r) => {
+                              const id = r.id;
+                              const ampLabel =
+                                id === 8299
+                                  ? "+5〜11%"
+                                  : id === 8014
+                                  ? "+8%"
+                                  : id === 8017
+                                  ? "最大+15%"
+                                  : "";
+                              return { label: `${r.name} (${ampLabel})`, value: r.id };
+                            }),
                         ]}
                         value={id}
                         onChange={(v) =>
