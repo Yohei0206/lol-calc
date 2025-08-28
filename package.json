@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fetch:data": "tsx scripts/fetch-cdragons.ts",
+    "smoke:calc": "tsx scripts/smoke-calc.ts"
   },
   "dependencies": {
     "react": "19.1.0",
@@ -22,6 +24,7 @@
     "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
-    "@eslint/eslintrc": "^3"
+    "@eslint/eslintrc": "^3",
+    "tsx": "^4"
   }
 }
