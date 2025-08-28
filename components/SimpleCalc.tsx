@@ -1074,15 +1074,14 @@ export default function SimpleCalc({ champions }: Props) {
                       options={[
                         { label: "なし", value: 0 },
                         ...allRunes
-                          .filter(
-                            (r) =>
-                              r.isKeystone &&
-                              (r.effects?.damageIncrease ?? 0) > 0
-                          )
+                          .filter((r) => r.isKeystone)
                           .map((r) => ({
-                            label: `${r.name} (+${Math.round(
-                              r.effects!.damageIncrease! * 100
-                            )}%)`,
+                            label:
+                              (r.effects?.damageIncrease ?? 0) > 0
+                                ? `${r.name} (+${Math.round(
+                                    (r.effects!.damageIncrease! || 0) * 100
+                                  )}%)`
+                                : r.name,
                             value: r.id,
                           })),
                       ]}
